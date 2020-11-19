@@ -410,8 +410,11 @@ class Layer(module.Module, version_utils.LayerVersionSelector):
 
     self._init_call_fn_args()
 
+    self._training_prop_set = False
     if self._expects_training_arg():
+      # set 'private` attr so avoid
       self.training = self._default_training_arg()
+      self._training_prop_set = False
 
     # Whether the `call` method can be used to build a TF graph without issues.
     # This attribute has no effect if the model is created using the Functional
@@ -1061,7 +1064,7 @@ class Layer(module.Module, version_utils.LayerVersionSelector):
     training_arg_passed_by_property = False
 
     # Priority 1: `training` was explicitly set as a non-None value
-    if self.training is not None:
+    if self._training_prop_set:
       training_value = self.training
       training_arg_passed_by_property = True
 
@@ -1201,8 +1204,8 @@ class Layer(module.Module, version_utils.LayerVersionSelector):
   def _set_training_mode(self, args, kwargs, call_context):
     training_mode = None
     if self._expects_training_arg:
-      # (1) `training` is set
-      if self.training is not None:
+      # (1) `training` was set
+      if self._training_prop_set:
         training_mode = self.training
       # (2) `training` was passed to this `Layer.call`.
       elif self._call_arg_was_passed('training', args, kwargs):
@@ -1260,6 +1263,7 @@ class Layer(module.Module, version_utils.LayerVersionSelector):
     else:
       training_value = None
 
+    self._training_prop_set = True
     self._training = training_value
 
   def _autographed_call(self):
