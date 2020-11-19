@@ -318,7 +318,6 @@ class Layer(module.Module, version_utils.LayerVersionSelector):
                name=None,
                dtype=None,
                dynamic=False,
-               training=None,
                **kwargs):
     self._instrument_layer_creation()
 
@@ -335,7 +334,6 @@ class Layer(module.Module, version_utils.LayerVersionSelector):
       'activity_regularizer',
       'autocast',
       'implementation',
-      'training',
     }
     # Validate optional keyword arguments.
     generic_utils.validate_kwargs(kwargs, allowed_kwargs)
@@ -352,8 +350,6 @@ class Layer(module.Module, version_utils.LayerVersionSelector):
     self.built = False
     # Provides information about which inputs are compatible with the layer.
     self._input_spec = None
-    # Indicates if the model is set in training mode
-    self._training = training
 
     # SavedModel-related attributes.
     # Record the build input shape for loading purposes.
@@ -411,12 +407,9 @@ class Layer(module.Module, version_utils.LayerVersionSelector):
     self._outbound_nodes_value = []
 
     self._init_call_fn_args()
+
     if self._expects_training_arg():
-      self.training = kwargs.get("training", None)
-    else:
-      if "training" in kwargs:
-        # TODO: (gdj0nes) how do we safely raise this warning
-        pass
+      self.training = self._default_training_arg()
 
     # Whether the `call` method can be used to build a TF graph without issues.
     # This attribute has no effect if the model is created using the Functional
